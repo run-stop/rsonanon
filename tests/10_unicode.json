@@ -1,0 +1,14 @@
+{
+  "name": "Ångström Müller-Thüraü",
+  "city": "Zürich",
+  "greeting": "こんにちは世界",
+  "emoji": "Hello 🌍 World 🎉",
+  "arabic": "مرحبا بالعالم",
+  "mixed": "Ñoño café naïve résumé",
+  "email": "ångström@münchen.example.com",
+  "rtl": "שלום עולם",
+  "chinese": "北京市朝阳区",
+  "surrogatePair": "𝄞 musical note",
+  "nullField": null,
+  "score": 42
+}

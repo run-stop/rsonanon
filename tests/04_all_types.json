@@ -1,0 +1,20 @@
+{
+  "string_val": "hello world",
+  "int_positive": 42,
+  "int_negative": -7,
+  "int_large": 9876543,
+  "float_positive": 3.14159,
+  "float_negative": -2.71828,
+  "bool_true": true,
+  "bool_false": false,
+  "null_val": null,
+  "empty_string": "",
+  "empty_array": [],
+  "empty_object": {},
+  "nested_array": [1, 2, 3],
+  "nested_object": {
+    "a": "alpha",
+    "b": 99
+  },
+  "mixed_array": ["text", 5, true, null]
+}

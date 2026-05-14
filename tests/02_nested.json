@@ -1,0 +1,31 @@
+{
+  "user": {
+    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "username": "bob_tester",
+    "contact": {
+      "email": "bob@example.net",
+      "phone": "0031-20-555-0198",
+      "emergencyContact": {
+        "name": "Carol Tester",
+        "phone": "0031-20-555-0199",
+        "relationship": "Spouse"
+      }
+    },
+    "location": {
+      "latitude": 52.3676,
+      "longitude": 4.9041,
+      "city": "Amsterdam",
+      "country": "Netherlands"
+    },
+    "preferences": {
+      "currency": "EUR",
+      "language": "nl",
+      "notifications": true
+    }
+  },
+  "meta": {
+    "createdAt": "2021-07-15T09:30:00Z",
+    "updatedAt": "2024-01-20T14:45:22Z",
+    "version": 3
+  }
+}

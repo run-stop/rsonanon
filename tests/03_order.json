@@ -1,0 +1,35 @@
+{
+  "orderId": "ord-98765",
+  "customerId": "c0ffee00-dead-beef-cafe-123456789abc",
+  "customerName": "Diana Prince",
+  "email": "diana.prince@example.test",
+  "status": "pending",
+  "createdAt": "2024-03-10T08:15:00Z",
+  "currency": "USD",
+  "billingAddress": {
+    "street": "1600 Pennsylvania Ave",
+    "city": "Washington",
+    "state": "DC",
+    "postcode": "20500",
+    "country": "United States"
+  },
+  "items": [
+    {
+      "sku": "ITEM-001",
+      "description": "Wireless Keyboard",
+      "quantity": 2,
+      "unitPrice": 49.99,
+      "totalPrice": 99.98
+    },
+    {
+      "sku": "ITEM-002",
+      "description": "USB Hub",
+      "quantity": 1,
+      "unitPrice": 29.99,
+      "totalPrice": 29.99
+    }
+  ],
+  "discount": 10.0,
+  "total": 119.97,
+  "notes": null
+}

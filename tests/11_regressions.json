@@ -1,0 +1,11 @@
+{
+  "zipcode": "90210",
+  "zip": "10001",
+  "postal": "SW1A 1AA",
+  "slashDateYMD": "2023/04/15",
+  "slashDateDMY": "15/04/2023",
+  "isoDatetime": "2023-04-15T14:32:00Z",
+  "spaceDateTime": "2023-04-15 14:32:00",
+  "nullableField": null,
+  "ip": "192.168.1.100"
+}

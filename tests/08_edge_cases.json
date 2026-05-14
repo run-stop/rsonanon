@@ -1,0 +1,26 @@
+{
+  "emptyString": "",
+  "singleChar": "X",
+  "whitespaceOnly": "   ",
+  "zero": 0,
+  "negativeZeroFloat": -0.0,
+  "largeInt": 999999999,
+  "smallFloat": 0.000001,
+  "boolTrue": true,
+  "boolFalse": false,
+  "nullField": null,
+  "nullFieldTwo": null,
+  "emptyObj": {},
+  "emptyArr": [],
+  "deeplyNested": {
+    "level1": {
+      "level2": {
+        "level3": {
+          "value": "deep value"
+        }
+      }
+    }
+  },
+  "arrayOfNulls": [null, null, null],
+  "arrayOfBools": [true, false, true, true, false]
+}

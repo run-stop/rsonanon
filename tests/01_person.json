@@ -1,0 +1,21 @@
+{
+  "id": "a1b2c3d4-e5f6-4789-abcd-ef1234567890",
+  "firstName": "Alice",
+  "lastName": "Wonderland",
+  "fullName": "Alice Wonderland",
+  "email": "alice.wonderland@company.example.com",
+  "phone": "+1-202-555-0173",
+  "dateOfBirth": "1985-03-22",
+  "age": 39,
+  "address": {
+    "street": "742 Evergreen Terrace",
+    "city": "Springfield",
+    "state": "IL",
+    "postcode": "62704",
+    "country": "United States"
+  },
+  "ipAddress": "203.0.113.45",
+  "website": "https://alice.example.com/profile",
+  "iban": "NL91ABNA0417164300",
+  "active": true
+}
