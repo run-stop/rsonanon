@@ -25,13 +25,15 @@ downstream code, schemas, and tooling continue to work unchanged.
 rsonanon [OPTIONS]
 
 Options:
-  --in:<file>             Input JSON file.  Defaults to stdin.
-  --out:<file>            Output JSON file. Defaults to stdout.
-  --pretty:on|off         Pretty-print output. Default: on.
-  --seed:<integer>        Deterministic numeric seed.
-  --seed-text:<text>      Deterministic text seed (hashed to integer internally).
-  --preserve-null:on|off  Keep null values as null. Default: on.
-  --help                  Show this help.
+  --in:<file>               Input JSON file.  Defaults to stdin.
+  --out:<file>              Output JSON file. Defaults to stdout.
+  --pretty:on|off           Pretty-print output. Default: on.
+  --seed:<integer>          Deterministic numeric seed.
+  --seed-text:<text>        Deterministic text seed (hashed to integer internally).
+  --preserve-null:on|off    Keep null values as null. Default: on.
+  --preserve-order:on|off   Preserve original JSON key order. Default: on.
+                            Use off to sort keys alphabetically instead.
+  --help                    Show this help.
 ```
 
 ### Examples
@@ -48,6 +50,9 @@ cat input.json | rsonanon --pretty:off > anon.json
 
 # Replace nulls instead of preserving them
 rsonanon --in:input.json --preserve-null:off --out:anon.json
+
+# Sort keys alphabetically instead of preserving original order
+rsonanon --in:input.json --preserve-order:off --out:anon.json
 ```
 
 ### Sample transformation
@@ -78,23 +83,46 @@ Input (`input.json`):
 Output (`rsonanon --in:input.json --seed-text:readme-example`):
 ```json
 {
-  "active": false,
+  "id": "51b9fb7f-cec2-47a0-8a45-3863df220790",
+  "firstName": "Avery",
+  "lastName": "Davis",
+  "email": "nora.wilson68@example.test",
+  "phone": "+1-555-004-2869",
+  "dateOfBirth": "2021-12-11",
+  "age": 76,
+  "address": {
+    "street": "9776 Davis Boulevard",
+    "city": "Riverton",
+    "state": "CO",
+    "postcode": "60851",
+    "country": "United Kingdom"
+  },
+  "ipAddress": "10.81.135.13",
+  "website": "https://oakridge-partners.example.test/docs",
+  "active": true
+}
+```
+
+Output (`rsonanon --in:input.json --seed-text:readme-example --preserve-order:off`):
+```json
+{
+  "active": true,
   "address": {
     "city": "Riverton",
-    "country": "Australia",
-    "postcode": "46135",
-    "state": "MA",
-    "street": "5183 Davis Street"
+    "country": "United Kingdom",
+    "postcode": "60851",
+    "state": "CO",
+    "street": "9776 Davis Boulevard"
   },
-  "age": 52,
-  "dateOfBirth": "2009-05-16",
-  "email": "quinn.hall41@example.test",
-  "firstName": "Taylor",
-  "fullName": "Jamie Davis",
-  "ipAddress": "10.13.66.250",
-  "lastName": "Hall",
-  "phone": "+1-555-246-9304",
-  "website": "https://bluebird-systems.example.test/docs"
+  "age": 76,
+  "dateOfBirth": "2021-12-11",
+  "email": "nora.wilson68@example.test",
+  "firstName": "Avery",
+  "id": "51b9fb7f-cec2-47a0-8a45-3863df220790",
+  "ipAddress": "10.81.135.13",
+  "lastName": "Davis",
+  "phone": "+1-555-004-2869",
+  "website": "https://oakridge-partners.example.test/docs"
 }
 ```
 
@@ -228,20 +256,20 @@ Build for a specific target (pass `--no-build` to skip recompiling):
 # .deb — Debian / Ubuntu
 cross build --release --target x86_64-unknown-linux-musl
 cargo deb --no-build --target x86_64-unknown-linux-musl
-# → target/x86_64-unknown-linux-musl/debian/rsonanon_0.1.0_amd64.deb
+# → target/x86_64-unknown-linux-musl/debian/rsonanon_0.2.0_amd64.deb
 
 cross build --release --target aarch64-unknown-linux-musl
 cargo deb --no-build --target aarch64-unknown-linux-musl
-# → target/aarch64-unknown-linux-musl/debian/rsonanon_0.1.0_arm64.deb
+# → target/aarch64-unknown-linux-musl/debian/rsonanon_0.2.0_arm64.deb
 
 # .rpm — Fedora
 cross build --release --target x86_64-unknown-linux-musl
 cargo generate-rpm --target x86_64-unknown-linux-musl
-# → target/x86_64-unknown-linux-musl/generate-rpm/rsonanon-0.1.0-1.x86_64.rpm
+# → target/x86_64-unknown-linux-musl/generate-rpm/rsonanon-0.2.0-1.x86_64.rpm
 
 cross build --release --target aarch64-unknown-linux-musl
 cargo generate-rpm --target aarch64-unknown-linux-musl
-# → target/aarch64-unknown-linux-musl/generate-rpm/rsonanon-0.1.0-1.aarch64.rpm
+# → target/aarch64-unknown-linux-musl/generate-rpm/rsonanon-0.2.0-1.aarch64.rpm
 ```
 
 ---

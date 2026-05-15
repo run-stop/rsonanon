@@ -73,6 +73,7 @@ struct Options {
     output_path: String,
     pretty: bool,
     preserve_null: bool,
+    preserve_order: bool,
     seed: i64,
     seed_text: String,
 }
@@ -84,6 +85,7 @@ impl Default for Options {
             output_path: String::new(),
             pretty: true,
             preserve_null: true,
+            preserve_order: true,
             seed: 0,
             seed_text: String::new(),
         }
@@ -268,6 +270,21 @@ fn count_digits(n: u64) -> usize {
 
 fn cache_key(path: &[String], value: &str) -> String {
     format!("{}={}", path.join("."), value)
+}
+
+fn sort_keys_recursive(val: Value) -> Value {
+    match val {
+        Value::Object(map) => {
+            let mut pairs: Vec<(String, Value)> = map
+                .into_iter()
+                .map(|(k, v)| (k, sort_keys_recursive(v)))
+                .collect();
+            pairs.sort_unstable_by(|(a, _), (b, _)| a.cmp(b));
+            Value::Object(pairs.into_iter().collect())
+        }
+        Value::Array(arr) => Value::Array(arr.into_iter().map(sort_keys_recursive).collect()),
+        other => other,
+    }
 }
 
 fn seed_from_text(s: &str) -> i64 {
@@ -633,6 +650,7 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
         json_str: String,
         seed: i64,
         preserve_null: bool,
+        preserve_order: bool,
         pretty: bool,
     }
 
@@ -646,6 +664,7 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
                 json_str: serde_json::to_string(&Value::Array(chunk.to_vec())).unwrap(),
                 seed: worker_seed,
                 preserve_null: opts.preserve_null,
+                preserve_order: opts.preserve_order,
                 pretty: opts.pretty,
             }
         })
@@ -659,6 +678,11 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
                 let mut a = Anonymizer::new(spec.seed, spec.preserve_null);
                 let anon = a.anonymize_at(&chunk_val, &[], "");
                 if let Value::Array(elems) = anon {
+                    let elems: Vec<Value> = if spec.preserve_order {
+                        elems
+                    } else {
+                        elems.into_iter().map(sort_keys_recursive).collect()
+                    };
                     if spec.pretty {
                         elems
                             .iter()
@@ -696,21 +720,24 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
 
 fn usage() {
     eprintln!(
-        r#"jsonanon - anonymize arbitrary JSON while preserving keys, structure, and JSON value types
+        r#"rsonanon - anonymize arbitrary JSON while preserving keys, structure, and JSON value types
 
 Options:
-  --in:<file>             Input JSON file. Defaults to stdin.
-  --out:<file>            Output JSON file. Defaults to stdout.
-  --pretty:on|off         Pretty-print output. Default: on.
-  --seed:<integer>        Deterministic numeric seed. Default: current time.
-  --seed-text:<text>      Deterministic text seed.
-  --preserve-null:on|off  Keep null values as null. Default: on.
-  --help                  Show help.
+  --in:<file>               Input JSON file. Defaults to stdin.
+  --out:<file>              Output JSON file. Defaults to stdout.
+  --pretty:on|off           Pretty-print output. Default: on.
+  --seed:<integer>          Deterministic numeric seed. Default: current time.
+  --seed-text:<text>        Deterministic text seed.
+  --preserve-null:on|off    Keep null values as null. Default: on.
+  --preserve-order:on|off   Preserve original JSON key order. Default: on.
+                            Use off to sort keys alphabetically instead.
+  --help                    Show help.
 
 Examples:
-  jsonanon --in:input.json --out:anon.json
-  jsonanon --in:input.json --out:anon.json --seed-text:project-a
-  cat input.json | jsonanon --pretty:off > anon.json
+  rsonanon --in:input.json --out:anon.json
+  rsonanon --in:input.json --out:anon.json --seed-text:project-a
+  cat input.json | rsonanon --pretty:off > anon.json
+  rsonanon --in:input.json --preserve-order:off --out:anon.json
 "#
     );
 }
@@ -754,6 +781,9 @@ fn parse_options() -> Result<Options, String> {
             "pretty" => opts.pretty = parse_bool_option(require_val(val, "pretty")?)?,
             "preserve-null" => {
                 opts.preserve_null = parse_bool_option(require_val(val, "preserve-null")?)?
+            }
+            "preserve-order" => {
+                opts.preserve_order = parse_bool_option(require_val(val, "preserve-order")?)?
             }
             "seed" => {
                 let v = require_val(val, "seed")?;
@@ -818,6 +848,11 @@ fn run() -> Result<(), String> {
         _ => {
             let mut a = Anonymizer::new(seed, opts.preserve_null);
             let anon = a.anonymize_at(&root, &[], "");
+            let anon = if opts.preserve_order {
+                anon
+            } else {
+                sort_keys_recursive(anon)
+            };
             if opts.pretty {
                 serde_json::to_string_pretty(&anon).map_err(|e| e.to_string())?
             } else {

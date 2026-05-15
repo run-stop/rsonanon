@@ -444,6 +444,114 @@ else
   fail "null-byte in JSON reports error" "got: $nullbyte_out"
 fi
 
+# ── group 14: preserve-order option ─────────────────────────────────────────
+echo ""
+echo "── Group 14: preserve-order option ────────────────────────────────────"
+
+ORDER_FILE="$TESTS_DIR/03_order.json"
+
+# Extract top-level key order directly from the input file (Python preserves insertion order).
+in_key_order=$(python3 -c "import json; d=json.load(open('$ORDER_FILE')); print(list(d.keys()))")
+
+# 14a: default (no flag) preserves input key order
+out_key_order_default=$(run --in:"$ORDER_FILE" --seed:42 2>&1 | \
+  python3 -c "import json,sys; d=json.load(sys.stdin); print(list(d.keys()))")
+if [[ "$in_key_order" == "$out_key_order_default" ]]; then
+  pass "preserve-order: default preserves input key order"
+else
+  fail "preserve-order: default preserves input key order" \
+       "want=$in_key_order got=$out_key_order_default"
+fi
+
+# 14b: explicit --preserve-order:on preserves input key order
+out_key_order_on=$(run --in:"$ORDER_FILE" --seed:42 --preserve-order:on 2>&1 | \
+  python3 -c "import json,sys; d=json.load(sys.stdin); print(list(d.keys()))")
+if [[ "$in_key_order" == "$out_key_order_on" ]]; then
+  pass "preserve-order:on preserves input key order"
+else
+  fail "preserve-order:on preserves input key order" \
+       "want=$in_key_order got=$out_key_order_on"
+fi
+
+# 14c: --preserve-order:off sorts top-level keys alphabetically
+sorted_check=$(run --in:"$ORDER_FILE" --seed:42 --preserve-order:off 2>&1 | \
+  python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+keys=list(d.keys())
+print('ok' if keys == sorted(keys) else 'fail: ' + str(keys))
+")
+if [[ "$sorted_check" == "ok" ]]; then
+  pass "preserve-order:off sorts top-level keys alphabetically"
+else
+  fail "preserve-order:off sorts top-level keys alphabetically" "$sorted_check"
+fi
+
+# 14d: --preserve-order:off also sorts keys in nested objects
+nested_sorted_check=$(run --in:"$ORDER_FILE" --seed:42 --preserve-order:off 2>&1 | \
+  python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+addr=d['billingAddress']
+keys=list(addr.keys())
+print('ok' if keys == sorted(keys) else 'fail: ' + str(keys))
+")
+if [[ "$nested_sorted_check" == "ok" ]]; then
+  pass "preserve-order:off sorts nested object keys alphabetically"
+else
+  fail "preserve-order:off sorts nested object keys alphabetically" "$nested_sorted_check"
+fi
+
+# 14e: on and off produce different key ordering (proving the flag has effect)
+out_on=$(run --in:"$ORDER_FILE" --seed:42 --preserve-order:on 2>&1)
+out_off=$(run --in:"$ORDER_FILE" --seed:42 --preserve-order:off 2>&1)
+if [[ "$out_on" != "$out_off" ]]; then
+  pass "preserve-order:on and off produce different key ordering"
+else
+  fail "preserve-order:on and off produce different key ordering" "outputs are identical"
+fi
+
+# 14f: --preserve-order:off output is valid JSON
+if echo "$out_off" | python3 -m json.tool >/dev/null 2>&1; then
+  pass "preserve-order:off produces valid JSON"
+else
+  fail "preserve-order:off produces valid JSON" "invalid JSON"
+fi
+
+# 14g: preserve-order:on through the parallel path (array with 35 elements)
+large_in_keys=$(python3 -c "
+import json
+d=json.load(open('$TESTS_DIR/09_array_large.json'))
+print(list(d[0].keys()))
+")
+large_out_keys=$(run --in:"$TESTS_DIR/09_array_large.json" --seed:42 --preserve-order:on 2>&1 | \
+  python3 -c "import json,sys; d=json.load(sys.stdin); print(list(d[0].keys()))")
+if [[ "$large_in_keys" == "$large_out_keys" ]]; then
+  pass "preserve-order:on preserves key order in parallel path"
+else
+  fail "preserve-order:on preserves key order in parallel path" \
+       "want=$large_in_keys got=$large_out_keys"
+fi
+
+# 14h: preserve-order:off sorts keys in every element of the parallel path
+parallel_sorted_check=$(run --in:"$TESTS_DIR/09_array_large.json" --seed:42 --preserve-order:off 2>&1 | \
+  python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for i, item in enumerate(d):
+    keys=list(item.keys())
+    if keys != sorted(keys):
+        print('fail at element ' + str(i) + ': ' + str(keys))
+        break
+else:
+    print('ok')
+")
+if [[ "$parallel_sorted_check" == "ok" ]]; then
+  pass "preserve-order:off sorts keys in parallel path"
+else
+  fail "preserve-order:off sorts keys in parallel path" "$parallel_sorted_check"
+fi
+
 # ── summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "────────────────────────────────────────────────────────────────────────"
