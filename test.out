@@ -52,7 +52,7 @@ Binary: /home/acca/Downloads/rsonanon/tests/../target/release/rsonanon
 [0;32m  PASS[0m nested keys intact (meta.version)
 
 ── Group 5: Data non-leakage ───────────────────────────────────────────
-[0;31m  FAIL[0m no originals leaked: 01_person: leaked original values: United States
+[0;32m  PASS[0m no originals leaked: 01_person
 [0;32m  PASS[0m no originals leaked: 07_identifiers
 [0;32m  PASS[0m no originals leaked: 02_nested
 
@@ -71,9 +71,7 @@ Binary: /home/acca/Downloads/rsonanon/tests/../target/release/rsonanon
 
 ── Group 8: preserve-null option ──────────────────────────────────────
 [0;32m  PASS[0m preserve-null:on keeps null
-[0;31m  FAIL[0m preserve-null:off replaces null: expr failed (fail): {
-  "billingAddress": {
-    "city": "Georgetown",
+[0;32m  PASS[0m preserve-null:off replaces null
 [0;32m  PASS[0m preserve-null:off produces valid JSON
 
 ── Group 9: stdin / stdout pipeline ───────────────────────────────────
@@ -94,16 +92,12 @@ Binary: /home/acca/Downloads/rsonanon/tests/../target/release/rsonanon
 
 ── Group 12: Bug regressions ───────────────────────────────────────────
 [0;32m  PASS[0m regressions: valid JSON output
-[0;31m  FAIL[0m zip is a 5-digit code, not an IP: expr failed (fail): {
-  "ip": "10.149.3.82",
-  "isoDatetime": "2007-04-08T00:00:00Z",
-[0;31m  FAIL[0m zipcode is a 5-digit code, not an IP: expr failed (fail): {
-  "ip": "10.149.3.82",
-  "isoDatetime": "2007-04-08T00:00:00Z",
+[0;32m  PASS[0m zip is a 5-digit code, not an IP
+[0;32m  PASS[0m zipcode is a 5-digit code, not an IP
 [0;32m  PASS[0m ip field is anonymized as IPv4
 [0;32m  PASS[0m yyyy/MM/dd date preserved in format
 [0;32m  PASS[0m ISO datetime has random time (not always midnight)
-[0;31m  FAIL[0m preserve-null:off replaces null in regression fixture: nullableField is still null
+[0;32m  PASS[0m preserve-null:off replaces null in regression fixture
 
 ── Group 13: Unicode / malformed / binary input ────────────────────────
 [0;32m  PASS[0m unicode: valid JSON output
@@ -121,4 +115,4 @@ Binary: /home/acca/Downloads/rsonanon/tests/../target/release/rsonanon
 [0;32m  PASS[0m null-byte in JSON reports error
 
 ────────────────────────────────────────────────────────────────────────
-[0;31m5/85 tests FAILED.[0m
+[0;32mAll 85 tests passed.[0m

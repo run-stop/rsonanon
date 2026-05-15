@@ -1,1 +1,12 @@
 /target
+
+# AI assistant traces
+.claude/
+.copilot/
+.github/copilot*
+.cursor/
+.aider*
+.continue/
+.codeium/
+.tabnine/
+.sourcegraph/

@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+# ── Linux builds ─────────────────────────────────────────────────────────────
+jobs:
+  build-linux:
+    name: Linux – ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            deb_arch: amd64
+            rpm_arch: x86_64
+            strip_cmd: strip
+          - target: aarch64-unknown-linux-musl
+            deb_arch: arm64
+            rpm_arch: aarch64
+            strip_cmd: aarch64-linux-gnu-strip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      # cross compiles inside a Docker container with the full musl toolchain;
+      # the resulting binary has zero dynamic library dependencies.
+      - name: Build (static musl)
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Install aarch64 strip (ARM64 only)
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        run: sudo apt-get install -y --no-install-recommends binutils-aarch64-linux-gnu
+
+      - name: Strip binary
+        run: ${{ matrix.strip_cmd }} target/${{ matrix.target }}/release/rsonanon
+
+      - name: Install packaging tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb,cargo-generate-rpm
+
+      # Both tools resolve `target/release/` → `target/<triple>/release/`
+      # automatically when --target is passed.
+      - name: Build .deb
+        run: cargo deb --no-build --target ${{ matrix.target }}
+
+      - name: Build .rpm
+        run: cargo generate-rpm --target ${{ matrix.target }}
+
+      - name: Collect packages
+        run: |
+          mkdir -p dist
+          find target -name '*.deb' -o -name '*.rpm' | xargs -I{} cp {} dist/
+          ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.deb_arch }}
+          path: dist/
+
+# ── Windows builds ────────────────────────────────────────────────────────────
+  build-windows:
+    name: Windows – ${{ matrix.suffix }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            suffix: x86_64
+          - target: aarch64-pc-windows-msvc
+            suffix: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # .cargo/config.toml injects -C target-feature=+crt-static for both
+      # MSVC targets, so the resulting .exe has no runtime DLL dependencies.
+      - name: Build (static CRT)
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage executable
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/rsonanon.exe \
+             dist/rsonanon-windows-${{ matrix.suffix }}.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.suffix }}
+          path: dist/
+
+# ── GitHub Release ─────────────────────────────────────────────────────────────
+  release:
+    name: GitHub Release
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh artifacts/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
