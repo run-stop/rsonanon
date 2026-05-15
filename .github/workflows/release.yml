@@ -76,17 +76,17 @@ jobs:
           name: linux-${{ matrix.deb_arch }}
           path: dist/
 
-# ── Windows builds ────────────────────────────────────────────────────────────
+# ── Windows builds (cross-compiled from Linux via llvm-mingw) ─────────────────
   build-windows:
     name: Windows – ${{ matrix.suffix }}
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-msvc
+          - target: x86_64-pc-windows-gnullvm
             suffix: x86_64
-          - target: aarch64-pc-windows-msvc
+          - target: aarch64-pc-windows-gnullvm
             suffix: arm64
 
     steps:
@@ -96,13 +96,20 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # .cargo/config.toml injects -C target-feature=+crt-static for both
-      # MSVC targets, so the resulting .exe has no runtime DLL dependencies.
-      - name: Build (static CRT)
+      # llvm-mingw provides clang-based cross-compilers for all Windows/ARM targets.
+      # Extracting with --strip-components=1 places bin/ directly under /usr/local,
+      # which is already on PATH — no export needed.
+      - name: Install llvm-mingw
+        run: |
+          curl -fsSL https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64.tar.xz \
+            | sudo tar -xJ --strip-components=1 -C /usr/local
+
+      # .cargo/config.toml sets the correct linker and -C target-feature=+crt-static
+      # for each gnullvm target, producing a self-contained exe with no DLL deps.
+      - name: Build (static, gnullvm)
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Stage executable
-        shell: bash
         run: |
           mkdir -p dist
           cp target/${{ matrix.target }}/release/rsonanon.exe \

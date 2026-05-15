@@ -109,6 +109,55 @@ Output (`rsonanon --in:input.json --seed-text:readme-example`):
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
   ```
 
+### Build all targets at once
+
+The commands below compile every release artifact — Linux musl binaries, Windows
+executables, and all Linux packages — from a single Linux machine.
+
+**One-time setup:**
+
+```bash
+# Cargo packaging tools
+cargo install cross --locked
+cargo install cargo-deb --locked
+cargo install cargo-generate-rpm --locked
+
+# llvm-mingw: clang-based cross-compiler for Windows targets (ARM64 + x86_64).
+# Download the latest release from https://github.com/mstorsjo/llvm-mingw/releases
+# and add its bin/ to PATH, e.g.:
+LLVM_MINGW=llvm-mingw-20240619-ucrt-ubuntu-20.04-x86_64
+curl -fsSL "https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/${LLVM_MINGW}.tar.xz" \
+  | tar -xJ
+export PATH="$PWD/${LLVM_MINGW}/bin:$PATH"   # add to ~/.bashrc to make permanent
+
+# Rust targets
+rustup target add \
+  x86_64-unknown-linux-musl \
+  aarch64-unknown-linux-musl \
+  x86_64-pc-windows-gnullvm \
+  aarch64-pc-windows-gnullvm
+```
+
+**Build everything:**
+
+```bash
+# Linux — statically linked musl binaries
+cross build --release --target x86_64-unknown-linux-musl
+cross build --release --target aarch64-unknown-linux-musl
+
+# Windows — cross-compiled from Linux via llvm-mingw
+cargo build --release --target x86_64-pc-windows-gnullvm
+cargo build --release --target aarch64-pc-windows-gnullvm
+
+# Linux packages (.deb + .rpm)
+cargo deb         --no-build --target x86_64-unknown-linux-musl
+cargo deb         --no-build --target aarch64-unknown-linux-musl
+cargo generate-rpm         --target x86_64-unknown-linux-musl
+cargo generate-rpm         --target aarch64-unknown-linux-musl
+```
+
+---
+
 ### Native build (development)
 
 ```bash
@@ -138,30 +187,31 @@ ldd target/x86_64-unknown-linux-musl/release/rsonanon
 # → statically linked
 ```
 
-### Windows builds (static MSVC CRT)
+### Windows builds (cross-compiled from Linux)
 
-Add the required Rust targets first:
+Windows executables are built using the `gnullvm` ABI — a clang/LLVM-based MinGW
+toolchain that produces self-contained `.exe` files with no runtime DLL dependencies
+(via `-C target-feature=+crt-static`). Everything runs from Linux; no Windows host
+or MSVC installation required.
+
+**Install [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases)** and add its
+`bin/` directory to `PATH` (see the "Build all targets at once" section above), then:
 
 ```bash
-rustup target add x86_64-pc-windows-msvc
-rustup target add aarch64-pc-windows-msvc
+rustup target add x86_64-pc-windows-gnullvm aarch64-pc-windows-gnullvm
 ```
 
 | Platform | Target triple | Command |
 |---|---|---|
-| Windows x86_64 | `x86_64-pc-windows-msvc` | `cargo build --release --target x86_64-pc-windows-msvc` |
-| Windows ARM64 | `aarch64-pc-windows-msvc` | `cargo build --release --target aarch64-pc-windows-msvc` |
+| Windows x86_64 | `x86_64-pc-windows-gnullvm` | `cargo build --release --target x86_64-pc-windows-gnullvm` |
+| Windows ARM64  | `aarch64-pc-windows-gnullvm` | `cargo build --release --target aarch64-pc-windows-gnullvm` |
 
-`.cargo/config.toml` already injects `-C target-feature=+crt-static` for both
-MSVC targets, so the resulting `.exe` has no MSVC runtime DLL dependencies.
+`.cargo/config.toml` sets the correct `linker` and `+crt-static` flag for each target.
 
 ```
-target/x86_64-pc-windows-msvc/release/rsonanon.exe
-target/aarch64-pc-windows-msvc/release/rsonanon.exe
+target/x86_64-pc-windows-gnullvm/release/rsonanon.exe
+target/aarch64-pc-windows-gnullvm/release/rsonanon.exe
 ```
-
-> **Note:** cross-compiling for `aarch64-pc-windows-msvc` requires a Windows host
-> or a Windows GitHub Actions runner.
 
 ### Building .deb and .rpm packages locally
 

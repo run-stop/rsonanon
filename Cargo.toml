@@ -20,6 +20,8 @@ assets = [
 
 # ── RPM packaging (cargo-generate-rpm) ───────────────────────────────────────
 [package.metadata.generate-rpm]
+auto-req = "no"
+arch = "aarch64"
 assets = [
-    { source = "target/release/rsonanon", dest = "/usr/bin/rsonanon", mode = "0755" },
+    { source = "target/aarch64-unknown-linux-musl/release/rsonanon", dest = "/usr/bin/rsonanon", mode = "0755" },
 ]
