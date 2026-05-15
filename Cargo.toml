@@ -2,6 +2,26 @@
 name = "rsonanon"
 version = "0.1.0"
 edition = "2024"
+description = "Anonymize arbitrary JSON while preserving structure and value types"
+license = "MIT"
 
 [dependencies]
 serde_json = "1"
+
+# ── DEB packaging (cargo-deb) ─────────────────────────────────────────────────
+[package.metadata.deb]
+maintainer = "rsonanon"
+copyright = "2024, rsonanon contributors"
+depends = ""
+section = "utils"
+assets = [
+    ["target/release/rsonanon", "usr/bin/rsonanon", "755"],
+]
+
+# ── RPM packaging (cargo-generate-rpm) ───────────────────────────────────────
+[package.metadata.generate-rpm]
+auto-req = "no"
+arch = "aarch64"
+assets = [
+    { source = "target/aarch64-unknown-linux-musl/release/rsonanon", dest = "/usr/bin/rsonanon", mode = "0755" },
+]
