@@ -60,7 +60,7 @@ jobs:
       # Both tools resolve `target/release/` → `target/<triple>/release/`
       # automatically when --target is passed.
       - name: Build .deb
-        run: cargo deb --no-build --target ${{ matrix.target }}
+        run: cargo deb --no-build --no-strip --target ${{ matrix.target }}
 
       - name: Build .rpm
         run: cargo generate-rpm --target ${{ matrix.target }}
