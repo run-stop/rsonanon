@@ -215,6 +215,25 @@ ldd target/x86_64-unknown-linux-musl/release/rsonanon
 # → statically linked
 ```
 
+### macOS builds
+
+macOS binaries are built natively on GitHub-hosted macOS runners (no cross-compilation
+tooling required — the Rust toolchain ships with the necessary LLVM back-ends).
+
+```bash
+rustup target add x86_64-apple-darwin aarch64-apple-darwin
+```
+
+| Platform | Target triple | Command |
+|---|---|---|
+| macOS Intel | `x86_64-apple-darwin` | `cargo build --release --target x86_64-apple-darwin` |
+| macOS Apple Silicon | `aarch64-apple-darwin` | `cargo build --release --target aarch64-apple-darwin` |
+
+```
+target/x86_64-apple-darwin/release/rsonanon
+target/aarch64-apple-darwin/release/rsonanon
+```
+
 ### Windows builds (cross-compiled from Linux)
 
 Windows executables are built using the `gnullvm` ABI — a clang/LLVM-based MinGW
@@ -287,6 +306,8 @@ automatically builds and publishes all packages:
 | `rsonanon-X.Y.Z-1.aarch64.rpm` | Fedora — ARM64 |
 | `rsonanon-windows-x86_64.exe` | Windows 64-bit |
 | `rsonanon-windows-arm64.exe` | Windows on ARM |
+| `rsonanon-macos-x86_64` | macOS Intel |
+| `rsonanon-macos-arm64` | macOS Apple Silicon |
 
 ---
 
