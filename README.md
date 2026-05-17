@@ -234,6 +234,14 @@ target/x86_64-apple-darwin/release/rsonanon
 target/aarch64-apple-darwin/release/rsonanon
 ```
 
+> **macOS Gatekeeper** — release binaries are not code-signed, so macOS quarantines
+> them when downloaded from the internet. Run this once after downloading to allow
+> execution:
+> ```bash
+> xattr -d com.apple.quarantine rsonanon-macos-arm64   # adjust filename as needed
+> ```
+> Alternatively, right-click the file in Finder and choose **Open**.
+
 ### Windows builds (cross-compiled from Linux)
 
 Windows executables are built using the `gnullvm` ABI — a clang/LLVM-based MinGW
@@ -308,6 +316,10 @@ automatically builds and publishes all packages:
 | `rsonanon-windows-arm64.exe` | Windows on ARM |
 | `rsonanon-macos-x86_64` | macOS Intel |
 | `rsonanon-macos-arm64` | macOS Apple Silicon |
+
+> **macOS users:** binaries are not code-signed. After downloading, run
+> `xattr -d com.apple.quarantine rsonanon-macos-arm64` (adjust filename as needed),
+> or right-click → **Open** in Finder.
 
 ---
 
