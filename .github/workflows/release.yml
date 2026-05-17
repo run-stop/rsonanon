@@ -120,10 +120,47 @@ jobs:
           name: windows-${{ matrix.suffix }}
           path: dist/
 
+# ── macOS builds ──────────────────────────────────────────────────────────────
+  build-macos:
+    name: macOS – ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            suffix: x86_64
+          - target: aarch64-apple-darwin
+            suffix: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Strip binary
+        run: strip target/${{ matrix.target }}/release/rsonanon
+
+      - name: Stage executable
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/rsonanon \
+             dist/rsonanon-macos-${{ matrix.suffix }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.suffix }}
+          path: dist/
+
 # ── GitHub Release ─────────────────────────────────────────────────────────────
   release:
     name: GitHub Release
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 

@@ -169,13 +169,13 @@ fn looks_like_url(s: &str) -> bool {
 }
 
 fn looks_like_ipv4(s: &str) -> bool {
-    let parts: Vec<&str> = s.split('.').collect();
-    if parts.len() != 4 {
-        return false;
-    }
-    parts
-        .iter()
-        .all(|p| !p.is_empty() && p.len() <= 3 && p.bytes().all(|b| b.is_ascii_digit()))
+    let valid_octet = |p: &str| !p.is_empty() && p.len() <= 3 && p.bytes().all(|b| b.is_ascii_digit());
+    let mut parts = s.splitn(5, '.');
+    parts.next().map_or(false, valid_octet)
+        && parts.next().map_or(false, valid_octet)
+        && parts.next().map_or(false, valid_octet)
+        && parts.next().map_or(false, valid_octet)
+        && parts.next().is_none()
 }
 
 fn all_digits(s: &str) -> bool {
@@ -269,7 +269,17 @@ fn count_digits(n: u64) -> usize {
 }
 
 fn cache_key(path: &[String], value: &str) -> String {
-    format!("{}={}", path.join("."), value)
+    let cap = path.iter().map(|s| s.len() + 1).sum::<usize>() + value.len() + 1;
+    let mut key = String::with_capacity(cap);
+    for (i, p) in path.iter().enumerate() {
+        if i > 0 {
+            key.push('.');
+        }
+        key.push_str(p);
+    }
+    key.push('=');
+    key.push_str(value);
+    key
 }
 
 fn sort_keys_recursive(val: Value) -> Value {
@@ -572,23 +582,25 @@ impl Anonymizer {
         result
     }
 
-    fn anonymize_at(&mut self, node: &Value, path: &[String], key: &str) -> Value {
+    fn anonymize_at(&mut self, node: &Value, path: &mut Vec<String>, key: &str) -> Value {
         match node {
             Value::Object(map) => {
                 let mut result = Map::new();
                 for (k, v) in map {
-                    let mut new_path = path.to_vec();
-                    new_path.push(k.clone());
-                    result.insert(k.clone(), self.anonymize_at(v, &new_path, k));
+                    path.push(k.clone());
+                    let anon = self.anonymize_at(v, path, k);
+                    path.pop();
+                    result.insert(k.clone(), anon);
                 }
                 Value::Object(result)
             }
             Value::Array(arr) => {
                 let mut result = Vec::with_capacity(arr.len());
                 for (i, v) in arr.iter().enumerate() {
-                    let mut new_path = path.to_vec();
-                    new_path.push(i.to_string());
-                    result.push(self.anonymize_at(v, &new_path, key));
+                    path.push(i.to_string());
+                    let anon = self.anonymize_at(v, path, key);
+                    path.pop();
+                    result.push(anon);
                 }
                 Value::Array(result)
             }
@@ -635,9 +647,8 @@ fn indent_element(s: &str) -> String {
         }
     }
     // Trim trailing spaces added after the final newline.
-    while res.ends_with(' ') {
-        res.pop();
-    }
+    let trimmed_len = res.trim_end_matches(' ').len();
+    res.truncate(trimmed_len);
     res
 }
 
@@ -647,7 +658,7 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
     let chunk_size = (n + n_workers - 1) / n_workers;
 
     struct ChunkSpec {
-        json_str: String,
+        chunk: Vec<Value>,
         seed: i64,
         preserve_null: bool,
         preserve_order: bool,
@@ -661,7 +672,7 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
             let w = (idx + 1) as i64;
             let worker_seed = seed ^ w ^ (w << 32);
             ChunkSpec {
-                json_str: serde_json::to_string(&Value::Array(chunk.to_vec())).unwrap(),
+                chunk: chunk.to_vec(),
                 seed: worker_seed,
                 preserve_null: opts.preserve_null,
                 preserve_order: opts.preserve_order,
@@ -674,30 +685,25 @@ fn anonymize_parallel(root: &[Value], opts: &Options, seed: i64) -> String {
         .into_iter()
         .map(|spec| {
             thread::spawn(move || {
-                let chunk_val: Value = serde_json::from_str(&spec.json_str).unwrap();
                 let mut a = Anonymizer::new(spec.seed, spec.preserve_null);
-                let anon = a.anonymize_at(&chunk_val, &[], "");
-                if let Value::Array(elems) = anon {
-                    let elems: Vec<Value> = if spec.preserve_order {
-                        elems
-                    } else {
-                        elems.into_iter().map(sort_keys_recursive).collect()
-                    };
-                    if spec.pretty {
-                        elems
-                            .iter()
-                            .map(|e| indent_element(&serde_json::to_string_pretty(e).unwrap()))
-                            .collect::<Vec<_>>()
-                            .join(",\n")
-                    } else {
-                        elems
-                            .iter()
-                            .map(|e| serde_json::to_string(e).unwrap())
-                            .collect::<Vec<_>>()
-                            .join(",")
-                    }
+                let mut path = Vec::new();
+                let elems: Vec<Value> = if spec.preserve_order {
+                    spec.chunk.iter().map(|v| { path.clear(); a.anonymize_at(v, &mut path, "") }).collect()
                 } else {
-                    String::new()
+                    spec.chunk.iter().map(|v| { path.clear(); sort_keys_recursive(a.anonymize_at(v, &mut path, "")) }).collect()
+                };
+                if spec.pretty {
+                    elems
+                        .iter()
+                        .map(|e| indent_element(&serde_json::to_string_pretty(e).unwrap()))
+                        .collect::<Vec<_>>()
+                        .join(",\n")
+                } else {
+                    elems
+                        .iter()
+                        .map(|e| serde_json::to_string(e).unwrap())
+                        .collect::<Vec<_>>()
+                        .join(",")
                 }
             })
         })
@@ -847,7 +853,7 @@ fn run() -> Result<(), String> {
         }
         _ => {
             let mut a = Anonymizer::new(seed, opts.preserve_null);
-            let anon = a.anonymize_at(&root, &[], "");
+            let anon = a.anonymize_at(&root, &mut Vec::new(), "");
             let anon = if opts.preserve_order {
                 anon
             } else {
