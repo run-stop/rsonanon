@@ -66,6 +66,8 @@ const JOB_TITLES: &[&str] = &[
 const STATUS_VALUES: &[&str] = &["active", "pending", "inactive", "complete", "failed"];
 const CURRENCIES: &[&str] = &["USD", "EUR", "GBP", "CHF", "CAD", "AUD"];
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 // ── Options ───────────────────────────────────────────────────────────────────
 
 struct Options {
@@ -738,6 +740,7 @@ Options:
   --preserve-order:on|off   Preserve original JSON key order. Default: on.
                             Use off to sort keys alphabetically instead.
   --help                    Show help.
+  --version                 Show the package name and program version.
 
 Examples:
   rsonanon --in:input.json --out:anon.json
@@ -801,7 +804,11 @@ fn parse_options() -> Result<Options, String> {
             "help" | "h" => {
                 usage();
                 std::process::exit(0);
-            }
+            },
+            "version" | "v" => {
+		println!("{} v{}", env!("CARGO_PKG_NAME"), VERSION);
+		std::process::exit(0);
+            },
             other => return Err(format!("unknown option: {}", other)),
         }
     }
